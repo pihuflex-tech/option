@@ -1,0 +1,36 @@
+{
+    "capital": 1015465.9999999999,
+    "orders": [
+        {
+            "order_id": "PAPER_62F4ADF1",
+            "timestamp": "2026-10-07 13:24:13",
+            "symbol": "NIFTY13OCT2622600CE",
+            "token": "44616",
+            "exchange": "NFO",
+            "side": "BUY",
+            "quantity": 6500,
+            "price": 134.55,
+            "order_type": "MARKET",
+            "status": "COMPLETE",
+            "remarks": "SIMULATED_PAPER_TRADE",
+            "target": 136.0,
+            "stop_loss": null
+        },
+        {
+            "order_id": "PAPER_2ACED7EE",
+            "timestamp": "2026-10-07 13:25:52",
+            "symbol": "NIFTY13OCT2622600CE",
+            "token": "44616",
+            "exchange": "NFO",
+            "side": "SELL",
+            "quantity": 6500,
+            "price": 135.0,
+            "order_type": "MARKET",
+            "status": "COMPLETE",
+            "remarks": "TARGET_HIT (Target: Rs 135.00)",
+            "target": null,
+            "stop_loss": null
+        }
+    ],
+    "positions": {}
+}

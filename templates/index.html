@@ -1,0 +1,370 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nifty Option Terminal & Paper Trader</title>
+    <link rel="stylesheet" href="/static/css/style.css?v=20261007-notblink">
+</head>
+<body>
+    <!-- ===== Professional Topbar ===== -->
+    <header class="topbar">
+        <div class="brand-section">
+            <div class="brand-logo-icon">N50</div>
+            <div>
+                <div class="brand-title">
+                    <span id="conn-dot" class="status-dot"></span>
+                    <span>NIFTY OPTION TERMINAL</span>
+                    <span class="meta-pill">100ms Live Feed</span>
+                    <span class="meta-pill" style="color: #38bdf8; border-color: rgba(56, 189, 248, 0.4);">Paper Engine</span>
+                </div>
+                <!-- Preserved existing status text container ID -->
+                <div id="meta-txt">
+                    <span>⚡ Initializing WebSocket feed...</span>
+                </div>
+            </div>
+        </div>
+        <div class="spot-container">
+            <span class="spot-label">NIFTY 50 Spot</span>
+            <!-- Preserved existing spot value ID -->
+            <div class="spot-price" id="spot-val">₹ --,---.--</div>
+        </div>
+    </header>
+
+    <!-- ===== Live Paper Trading Metric Ribbon ===== -->
+    <section class="portfolio-ribbon">
+        <div class="port-item">
+            <div class="port-info">
+                <span class="port-label">Available Virtual Cash</span>
+                <!-- Preserved existing ID -->
+                <span class="port-val" id="port-cash">₹ 10,00,000.00</span>
+            </div>
+            <div class="port-icon">💰</div>
+        </div>
+        <div class="port-item">
+            <div class="port-info">
+                <span class="port-label">Portfolio Net Worth</span>
+                <!-- Preserved existing ID -->
+                <span class="port-val" id="port-networth">₹ 10,00,000.00</span>
+            </div>
+            <div class="port-icon">💼</div>
+        </div>
+        <div class="port-item">
+            <div class="port-info">
+                <span class="port-label">Total Realized & Unrealized P&L</span>
+                <!-- Preserved existing ID -->
+                <span class="port-val" id="port-pnl">₹ +0.00</span>
+            </div>
+            <div class="port-icon">📈</div>
+        </div>
+        <div class="port-item">
+            <div class="port-info">
+                <span class="port-label">Open Positions</span>
+                <span class="port-val" id="port-pos-count">0 Active</span>
+            </div>
+            <div class="port-icon">📋</div>
+        </div>
+    </section>
+
+    <!-- ===== Expiry & Matrix Controls ===== -->
+    <section class="controls">
+        <div class="control-group">
+            <label class="control-label" for="exp-select">Expiry Contract:</label>
+            <!-- Preserved existing select ID and onchange handler -->
+            <select id="exp-select" onchange="onExpChange(this.selectedIndex)"></select>
+        </div>
+        <div class="market-hint">
+            <span>💡 Click any CE/PE premium to execute a simulated instant order</span>
+        </div>
+    </section>
+
+    <!-- ===== Option Chain Matrix Table (Steady, No-Blinking DOM) ===== -->
+    <main class="table-responsive">
+        <table>
+            <thead>
+                <!-- Super-headers distinguishing Calls vs Puts -->
+                <tr class="super-header">
+                    <th colspan="2" class="th-ce-super">▲ CALL OPTIONS (CE)</th>
+                    <th class="th-strike-super">STRIKE</th>
+                    <th colspan="2" class="th-pe-super">PUT OPTIONS (PE) ▼</th>
+                </tr>
+                <tr class="sub-header">
+                    <th style="text-align:right;">Call (CE) LTP</th>
+                    <th>Call Contract</th>
+                    <th class="strike-cell">Strike Price</th>
+                    <th>Put Contract</th>
+                    <th style="text-align:left;">Put (PE) LTP</th>
+                </tr>
+            </thead>
+            <!-- Preserved existing rows-target ID -->
+            <tbody id="rows-target">
+                <tr>
+                    <td colspan="5" style="padding:40px; color:#64748b; text-align:center;">
+                        Connecting to WebSocket feed...
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </main>
+
+    <!-- ===== Tabs Section for Active Positions & Order Book ===== -->
+    <section class="bottom-section">
+        <div class="tabs-header">
+            <div class="tab-nav">
+                <button class="tab-btn active" id="tab-btn-positions" onclick="switchTab('positions')">
+                    <span>📊 Active Positions</span>
+                    <span class="tab-badge" id="pos-count-badge">0</span>
+                </button>
+                <button class="tab-btn" id="tab-btn-orders" onclick="switchTab('orders')">
+                    <span>📋 Order Book / Trade Audit</span>
+                </button>
+            </div>
+            <div id="tab-actions">
+                <button class="tab-action-btn" id="btn-refresh-tab" onclick="refreshCurrentTab()" title="Refresh tab data">
+                    🔄 Refresh
+                </button>
+                <button class="tab-action-btn btn-export" id="btn-export-csv" onclick="downloadTradeHistoryCSV()" title="Download Trade History as CSV">
+                    📥 Download CSV
+                </button>
+                <button class="tab-action-btn btn-danger" id="btn-clear-history" onclick="openClearHistoryModal()" title="Clear all simulated trade history">
+                    🗑️ Clear History
+                </button>
+            </div>
+        </div>
+
+        <!-- Tab 1: Active Paper Positions -->
+        <div class="tab-pane active" id="tab-content-positions">
+            <div class="table-responsive" style="margin-bottom:0; border:none; border-radius:0;">
+                <table class="pos-table">
+                    <thead>
+                        <tr>
+                            <th>Contract</th>
+                            <th>Qty</th>
+                            <th>Avg Price</th>
+                            <th>LTP</th>
+                            <th>Target</th>
+                            <th>Stop-Loss</th>
+                            <th>Unrealized P&L</th>
+                            <th style="text-align:center;">Actions</th>
+                        </tr>
+                    </thead>
+                    <!-- Preserved existing pos-target ID -->
+                    <tbody id="pos-target">
+                        <tr>
+                            <td colspan="8" style="padding:24px; text-align:center; color:#64748b;">No open positions</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Tab 2: Simulated Order History -->
+        <div class="tab-pane" id="tab-content-orders">
+            <div class="table-responsive" style="margin-bottom:0; border:none; border-radius:0;">
+                <table class="pos-table">
+                    <thead>
+                        <tr>
+                            <th>Order ID</th>
+                            <th>Timestamp</th>
+                            <th>Symbol</th>
+                            <th>Side</th>
+                            <th>Qty</th>
+                            <th>Exec Price</th>
+                            <th>Target</th>
+                            <th>Stop-Loss</th>
+                            <th>Status / Remarks</th>
+                        </tr>
+                    </thead>
+                    <tbody id="orders-target">
+                        <tr>
+                            <td colspan="9" style="padding:24px; text-align:center; color:#64748b;">No trade history recorded yet</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===== Quick Trade Modal (with Target & Stop-Loss) ===== -->
+    <div class="modal-overlay" id="order-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <!-- Preserved existing m-title ID -->
+                <span id="m-title">Place Paper Order</span>
+                <span class="modal-close-btn" onclick="closeModal()">✕</span>
+            </div>
+            
+            <div class="input-group">
+                <label for="m-sym">Selected Contract</label>
+                <!-- Preserved existing m-sym ID -->
+                <input type="text" id="m-sym" readonly style="color:#38bdf8; font-weight:600;">
+            </div>
+            
+            <div class="input-group">
+                <label for="m-price">Current Market Price (LTP)</label>
+                <!-- Preserved existing m-price ID -->
+                <input type="text" id="m-price" readonly>
+            </div>
+            
+            <div class="input-group">
+                <label for="m-lots">
+                    Lots (<span id="m-qty-summary">50 Qty</span>) — 1 Lot = <span id="m-lotsize-txt">50</span> Qty
+                </label>
+                <!-- Preserved existing m-lots ID and oninput callback -->
+                <input type="number" id="m-lots" value="1" min="1" oninput="calcTotal()">
+                <!-- Quick Lot Selector Chips -->
+                <div class="quick-chips-row">
+                    <button type="button" class="lot-chip" onclick="quickSetLots(1)">1 Lot</button>
+                    <button type="button" class="lot-chip" onclick="quickSetLots(2)">2 Lots</button>
+                    <button type="button" class="lot-chip" onclick="quickSetLots(5)">5 Lots</button>
+                    <button type="button" class="lot-chip" onclick="quickSetLots(10)">10 Lots</button>
+                    <button type="button" class="lot-chip" onclick="quickAddLots(1)">+1 Lot</button>
+                </div>
+            </div>
+
+            <!-- Target & Stop-Loss Section -->
+            <div class="sl-target-card">
+                <div class="sl-target-header">
+                    <span class="sl-target-title">🎯 Target & 🛑 Stop-Loss (Optional)</span>
+                    <span class="sl-target-hint">Auto square-off when hit</span>
+                </div>
+                
+                <div class="sl-target-grid">
+                    <!-- Target Input -->
+                    <div class="input-group" style="margin-bottom:6px;">
+                        <label for="m-target">Target Price (₹)</label>
+                        <input type="number" id="m-target" step="0.05" placeholder="e.g. 210.00" oninput="calcRiskReward()">
+                        <div class="quick-chips-row mini-chips">
+                            <button type="button" class="lot-chip mini-chip" onclick="quickAddTarget(5)">+5 pts</button>
+                            <button type="button" class="lot-chip mini-chip" onclick="quickAddTarget(10)">+10 pts</button>
+                            <button type="button" class="lot-chip mini-chip" onclick="quickAddTarget(20)">+20 pts</button>
+                            <button type="button" class="lot-chip mini-chip" onclick="quickAddTargetPct(10)">+10%</button>
+                            <button type="button" class="lot-chip mini-chip" onclick="quickAddTargetPct(20)">+20%</button>
+                            <button type="button" class="lot-chip mini-chip chip-clear" onclick="clearTargetInput()" title="Clear Target">✕</button>
+                        </div>
+                    </div>
+
+                    <!-- Stop-Loss Input -->
+                    <div class="input-group" style="margin-bottom:6px;">
+                        <label for="m-sl">Stop-Loss Price (₹)</label>
+                        <input type="number" id="m-sl" step="0.05" placeholder="e.g. 150.00" oninput="calcRiskReward()">
+                        <div class="quick-chips-row mini-chips">
+                            <button type="button" class="lot-chip mini-chip" onclick="quickSubSL(5)">-5 pts</button>
+                            <button type="button" class="lot-chip mini-chip" onclick="quickSubSL(10)">-10 pts</button>
+                            <button type="button" class="lot-chip mini-chip" onclick="quickSubSL(15)">-15 pts</button>
+                            <button type="button" class="lot-chip mini-chip" onclick="quickSubSLPct(10)">-10%</button>
+                            <button type="button" class="lot-chip mini-chip" onclick="quickSubSLPct(20)">-20%</button>
+                            <button type="button" class="lot-chip mini-chip chip-clear" onclick="clearSLInput()" title="Clear Stop-Loss">✕</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Risk-Reward Projection Strip -->
+                <div id="m-rr-strip" class="rr-strip" style="display:none;">
+                    <span id="m-rr-ratio" class="rr-badge">R:R --</span>
+                    <span id="m-max-profit" class="rr-profit">Target Profit: --</span>
+                    <span id="m-max-loss" class="rr-loss">Max Loss: --</span>
+                </div>
+            </div>
+            
+            <div class="input-group" style="margin-top:10px;">
+                <label for="m-total">Estimated Margin / Premium Required</label>
+                <!-- Preserved existing m-total ID -->
+                <input type="text" id="m-total" readonly style="color:#10b981; font-weight:700;">
+            </div>
+
+            <!-- Margin Safety Check Alert Banner -->
+            <div id="m-margin-banner" class="margin-check-banner margin-warning">
+                <span>⚠️ Required margin exceeds available virtual cash.</span>
+            </div>
+            
+            <div class="btn-group">
+                <!-- Preserved existing closeModal and submitOrder triggers -->
+                <button type="button" class="btn btn-cancel" onclick="closeModal()">Cancel</button>
+                <button type="button" class="btn btn-buy" id="btn-submit-order" onclick="submitOrder()">BUY NOW (Paper)</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== Edit Target & Stop-Loss Modal for Active Position ===== -->
+    <div class="modal-overlay" id="sltarget-modal">
+        <div class="modal" style="width: 400px;">
+            <div class="modal-header">
+                <span>🎯 Modify Target & Stop-Loss</span>
+                <span class="modal-close-btn" onclick="closeSLTargetModal()">✕</span>
+            </div>
+            
+            <div class="input-group">
+                <label>Position Contract</label>
+                <input type="text" id="edit-sl-sym" readonly style="color:#38bdf8; font-weight:600;">
+            </div>
+            
+            <div style="display:flex; gap:12px;">
+                <div class="input-group" style="flex:1;">
+                    <label>Avg Buy Price</label>
+                    <input type="text" id="edit-sl-avg" readonly>
+                </div>
+                <div class="input-group" style="flex:1;">
+                    <label>Current LTP</label>
+                    <input type="text" id="edit-sl-ltp" readonly>
+                </div>
+            </div>
+
+            <div class="input-group">
+                <label for="edit-target-val">Target Price (₹) <span style="color:var(--text-muted); font-size:11px;">(0 or blank to remove)</span></label>
+                <input type="number" id="edit-target-val" step="0.05" placeholder="e.g. 185.00">
+            </div>
+
+            <div class="input-group">
+                <label for="edit-sl-val">Stop-Loss Price (₹) <span style="color:var(--text-muted); font-size:11px;">(0 or blank to remove)</span></label>
+                <input type="number" id="edit-sl-val" step="0.05" placeholder="e.g. 140.00">
+            </div>
+
+            <div class="btn-group">
+                <button type="button" class="btn btn-cancel" onclick="closeSLTargetModal()">Cancel</button>
+                <button type="button" class="btn btn-buy" id="btn-save-sltarget" onclick="submitSLTargetUpdate()">Save Target & SL</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== Square-off Confirmation Safety Dialog ===== -->
+    <div class="modal-overlay" id="squareoff-modal">
+        <div class="modal" style="width: 380px;">
+            <div class="modal-header">
+                <span>Confirm Position Exit</span>
+                <span class="modal-close-btn" onclick="closeSquareOffModal()">✕</span>
+            </div>
+            <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 16px;">
+                Are you sure you want to square off <strong id="sq-sym" style="color: #38bdf8;"></strong> at current market price?
+            </p>
+            <div class="btn-group">
+                <button type="button" class="btn btn-cancel" onclick="closeSquareOffModal()">Cancel</button>
+                <button type="button" class="btn btn-exit" id="btn-confirm-squareoff" onclick="confirmSquareOff()" style="flex:1; padding: 12px 18px; font-size:14px;">Square Off Now</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== Clear History Confirmation Dialog ===== -->
+    <div class="modal-overlay" id="clear-confirm-modal">
+        <div class="modal" style="width: 390px;">
+            <div class="modal-header">
+                <span style="color: #f43f5e;">⚠️ Clear Trade History</span>
+                <span class="modal-close-btn" onclick="closeClearHistoryModal()">✕</span>
+            </div>
+            <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 18px; line-height: 1.5;">
+                Are you sure you want to permanently clear all completed order records and simulated trade history? This cannot be undone.
+            </p>
+            <div class="btn-group">
+                <button type="button" class="btn btn-cancel" onclick="closeClearHistoryModal()">Cancel</button>
+                <button type="button" class="btn btn-exit" onclick="confirmClearHistory()" style="flex:1; padding: 12px 18px; font-size:14px; background:#f43f5e;">Yes, Clear All History</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== Non-blocking Floating Toast Container ===== -->
+    <div id="toast-container"></div>
+
+    <!-- Preserved existing script inclusion with cache buster -->
+    <script src="/static/js/app.js?v=20261007-notblink"></script>
+</body>
+</html>

@@ -1,0 +1,42 @@
+MIT License
+
+Copyright (c) 2026
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+Here are the complete configuration and documentation files to populate your project root.
+
+---
+
+### 1. `.gitignore`
+
+This ensures secrets, heavy instrument dumps, and local Python cache files never get pushed to your Git repository:
+
+```gitignore
+# Bytecode & Caches
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.pytest_cache/
+
+# Virtual Environments
+venv/
+env/
+ENV/
+.venv/
+
+# Environment Variables & API Secrets
+.env
+*.env
+!.env.example
+
+# Large Data & Local Dump Files
+scrip_master.json
+*.log
+*.sqlite3
+
+# IDE & Editor Specific Folders
+.vscode/
+.idea/
+*.swp
+.DS_Store
